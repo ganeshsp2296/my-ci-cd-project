@@ -29,7 +29,9 @@ pipeline {
         stage('SonarQube Scan') {
             steps {
                 withSonarQubeEnv("${SONARQUBE}") {
-                    sh "mvn -f mvn-app/pom.xml clean verify sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY}"
+                    dir('mvn-app') {
+                        sh "mvn clean verify sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY}"
+                    }
                 }
             }
         }
@@ -44,23 +46,31 @@ pipeline {
 
         stage('Build Artifact') {
             steps {
-                sh 'mvn -f mvn-app/pom.xml clean package -DskipTests'
+                dir('mvn-app') {
+                    sh 'mvn clean package -DskipTests'
+                    sh 'ls -l target/'  // Debug: list files to confirm jar exists
+                }
             }
         }
 
         stage('Upload to Nexus') {
             steps {
-                nexusArtifactUploader artifacts: [[artifactId: 'myapp',
-                                                   classifier: '',
-                                                   file: 'mvn-app/target/myapp-1.0.jar',
-                                                   type: 'jar']],
-                                      credentialsId: 'nexus-creds',
-                                      groupId: 'com.ganesh',
-                                      nexusUrl: "${NEXUS_URL}",
-                                      nexusVersion: 'nexus3',
-                                      protocol: 'http',
-                                      repository: "${NEXUS_REPO}",
-                                      version: "1.0-${env.BUILD_ID}"
+                dir('mvn-app') {
+                    sh 'ls -l target/'  // Debug: confirm again before upload
+                    nexusArtifactUploader artifacts: [[
+                        artifactId: 'myapp',
+                        classifier: '',
+                        file: 'target/myapp-1.0.jar',
+                        type: 'jar'
+                    ]],
+                    credentialsId: 'nexus-creds',
+                    groupId: 'com.ganesh',
+                    nexusUrl: "${NEXUS_URL}",
+                    nexusVersion: 'nexus3',
+                    protocol: 'http',
+                    repository: "${NEXUS_REPO}",
+                    version: "1.0-${env.BUILD_ID}"
+                }
             }
         }
 
