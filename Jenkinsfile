@@ -1,31 +1,53 @@
 pipeline {
     agent any
+
     environment {
-        SONARQUBE = 'SonarQubeK8s'
-        NEXUS_URL = 'http://nexus:8081'
+        SONARQUBE = 'MySonar'
+        SONARQUBE_PROJECT_KEY = 'my-java-app'
+        NEXUS_CREDS = credentials('nexus-creds')
+        NEXUS_URL = 'http://3.111.214.26:30002'
         NEXUS_REPO = 'maven-releases'
+        DOCKER_IMAGE = "3.111.214.26:30002/myapp:1.0-${env.BUILD_ID}"
     }
+
+    tools {
+        maven 'maven'
+        jdk 'jdk17'
+    }
+
     triggers {
         githubPush()
     }
+
     stages {
         stage('Checkout') {
             steps {
-                git branch: 'ganesh.developer', url: 'https://github.com/yourname/my-ci-cd-project.git'
+                git branch: 'ganesh.developer', url: 'https://github.com/ganeshsp2296/my-ci-cd-project.git'
             }
         }
+
         stage('SonarQube Scan') {
             steps {
-                withSonarQubeEnv('SonarQubeK8s') {
-                    sh "mvn -f mvn-app/pom.xml clean verify sonar:sonar"
+                withSonarQubeEnv("${SONARQUBE}") {
+                    sh "mvn -f mvn-app/pom.xml clean verify sonar:sonar -Dsonar.projectKey=${SONARQUBE_PROJECT_KEY}"
                 }
             }
         }
-        stage('Build Artifact') {
+
+        stage('Quality Gate') {
             steps {
-                sh 'mvn -f mvn-app/pom.xml clean package'
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
+
+        stage('Build Artifact') {
+            steps {
+                sh 'mvn -f mvn-app/pom.xml clean package -DskipTests'
+            }
+        }
+
         stage('Upload to Nexus') {
             steps {
                 nexusArtifactUploader artifacts: [[artifactId: 'myapp',
@@ -41,13 +63,14 @@ pipeline {
                                       version: "1.0-${env.BUILD_ID}"
             }
         }
+
         stage('Docker Build & Push') {
             steps {
-                script {
-                    def imageTag = "nexus:8081/repository/docker-releases/myapp:1.0-${env.BUILD_ID}"
+                withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh """
-                        docker build -t ${imageTag} .
-                        docker push ${imageTag}
+                        echo "$PASS" | docker login ${NEXUS_URL} -u "$USER" --password-stdin
+                        docker build -t ${DOCKER_IMAGE} .
+                        docker push ${DOCKER_IMAGE}
                     """
                 }
             }
