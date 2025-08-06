@@ -11,8 +11,8 @@ pipeline {
     }
 
     tools {
-        maven 'maven'
-        jdk 'jdk17'
+        maven 'Maven 3'
+        jdk 'JDK 17'
     }
 
     triggers {
