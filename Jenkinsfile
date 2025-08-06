@@ -5,7 +5,7 @@ pipeline {
         SONARQUBE = 'MySonar'
         SONARQUBE_PROJECT_KEY = 'my-java-app'
         NEXUS_CREDS = credentials('nexus-creds')
-        NEXUS_URL = 'http://3.111.214.26:30002'
+        NEXUS_URL = '3.111.214.26:30002'          // removed http:// here for docker login
         NEXUS_REPO = 'maven-releases'
         DOCKER_IMAGE = "3.111.214.26:30002/myapp:1.0-${env.BUILD_ID}"
     }
@@ -48,7 +48,7 @@ pipeline {
             steps {
                 dir('mvn-app') {
                     sh 'mvn clean package -DskipTests'
-                    sh 'ls -l target/'  // Debug: list files to confirm jar exists
+                    sh 'ls -l target/'  // Confirm artifact presence
                 }
             }
         }
@@ -56,7 +56,7 @@ pipeline {
         stage('Upload to Nexus') {
             steps {
                 dir('mvn-app') {
-                    sh 'ls -l target/'  // Debug: confirm again before upload
+                    sh 'ls -l target/'  // Confirm again before upload
                     nexusArtifactUploader artifacts: [[
                         artifactId: 'myapp',
                         classifier: '',
