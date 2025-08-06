@@ -5,9 +5,9 @@ pipeline {
         SONARQUBE = 'MySonar'
         SONARQUBE_PROJECT_KEY = 'my-java-app'
         NEXUS_CREDS = credentials('nexus-creds')
-        NEXUS_URL = '3.111.214.26:30002'          // removed http:// here for docker login
-        NEXUS_REPO = 'maven-releases'
-        DOCKER_IMAGE = "3.111.214.26:30002/myapp:1.0-${env.BUILD_ID}"
+        NEXUS_URL = '13.127.161.27:8081'       // updated public IP, Nexus runs on 8081
+        NEXUS_REPO = 'my-maven-releases'       // updated repo name as per your message
+        DOCKER_IMAGE = "13.127.161.27:5000/myapp:1.0-${env.BUILD_ID}" // updated registry port and IP
     }
 
     tools {
@@ -78,7 +78,7 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'nexus-creds', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
                     sh """
-                        echo "$PASS" | docker login ${NEXUS_URL} -u "$USER" --password-stdin
+                        echo "$PASS" | docker login 13.127.161.27:5000 -u "$USER" --password-stdin
                         docker build -t ${DOCKER_IMAGE} .
                         docker push ${DOCKER_IMAGE}
                     """
