@@ -52,7 +52,7 @@ pipeline {
             steps {
                 nexusArtifactUploader artifacts: [[artifactId: 'myapp',
                                                    classifier: '',
-                                                   file: 'mvn-app/target/myapp.jar',
+                                                   file: 'mvn-app/target/myapp-1.0.jar',
                                                    type: 'jar']],
                                       credentialsId: 'nexus-creds',
                                       groupId: 'com.ganesh',
